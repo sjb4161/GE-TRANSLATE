@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>패턴실무 번역 비서</title>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="패턴번역">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { height: 100%; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background:#f0f2f5; transition: filter 0.3s ease; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        textarea { -ms-overflow-style: none; scrollbar-width: none; }
+        textarea::-webkit-scrollbar { display: none; }
+        @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .typing-indicator span { display:inline-block; width:4px; height:4px; background:#3b82f6; border-radius:50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1){animation-delay:-.32s} .typing-indicator span:nth-child(2){animation-delay:-.16s}
+        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        .toast { visibility:hidden; background:#323232; color:#fff; text-align:center; border-radius:20px; padding:10px 22px;
+                 position:fixed; z-index:1000; left:50%; bottom:24px; transform:translateX(-50%); font-size:14px; opacity:0; transition:opacity .3s, bottom .3s; }
+        .toast.show { visibility:visible; opacity:1; bottom:40px; }
+        .conv-del-x { display:none; }
+        #convMessages.delete-mode .conv-del-x { display:inline-flex; }
+    </style>
+</head>
+<body class="h-full w-full text-gray-800">
+
+  <div class="w-full h-full flex flex-col bg-[#f0f2f5] relative" style="padding-bottom:calc(5.5rem + env(safe-area-inset-bottom));">
+
+    <!-- 헤더 -->
+    <header class="bg-white border-b border-gray-100 shrink-0">
+      <div class="flex items-center justify-between max-w-3xl w-full mx-auto px-4 py-3">
+        <div style="margin-left: 4px">
+          <h1 class="text-lg font-semibold tracking-tight">패턴실무 AI 번역비서</h1>
+          <p class="text-xs text-gray-400">Gemini 내장 엔진 · 봉제/패턴/3D 전문 용어</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span class="flex items-center gap-1"><span id="dotG" class="w-2 h-2 rounded-full bg-green-500"></span>Gemini</span>
+            <span class="flex items-center gap-1"><span id="dotC" class="w-2 h-2 rounded-full bg-gray-300"></span>Claude</span>
+          </div>
+          <button id="settingsBtn" class="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full transition" title="설정">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 언어 선택 바 -->
+    <div class="flex items-center gap-2 px-4 pt-3 max-w-3xl w-full mx-auto">
+        <button id="sourceLangBtn" class="flex-1 bg-white hover:bg-gray-50 text-blue-600 font-medium py-2.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-1 text-sm">
+            <span id="sourceLangText" class="truncate">언어 감지</span>
+            <svg class="w-4 h-4 opacity-50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <button id="swapLangBtn" class="p-2.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition active:scale-95">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        </button>
+        <button id="targetLangBtn" class="flex-1 bg-white hover:bg-gray-50 text-gray-800 font-medium py-2.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-1 text-sm">
+            <span id="targetLangText" class="truncate">중국어(간체), 영어, 일본어</span>
+            <svg class="w-4 h-4 opacity-50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+    </div>
+
+    <!-- 엔진 칩 -->
+    <div class="flex items-center justify-center gap-2 px-4 py-2 max-w-3xl w-full mx-auto">
+        <button id="geminiChip" class="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-full transition border bg-sky-50 text-sky-700 border-sky-200"><span id="geminiDot" class="w-2 h-2 rounded-full bg-sky-500"></span>✦ Gemini</button>
+        <button id="claudeChip" class="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-full transition border"><span id="claudeDot" class="w-2 h-2 rounded-full"></span>◈ Claude</button>
+    </div>
+
+    <!-- 입력/출력 -->
+    <div class="flex-1 flex flex-col gap-3 px-4 pb-4 overflow-hidden max-w-3xl w-full mx-auto">
+        <div class="bg-white rounded-3xl p-4 shadow-sm relative shrink-0">
+            <textarea id="sourceText" class="w-full h-24 resize-none outline-none text-base leading-relaxed placeholder-gray-400 bg-transparent" placeholder="번역할 패턴/봉제 내용을 입력하세요"></textarea>
+            <button id="clearBtn" class="absolute bottom-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full hidden transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <button id="translateBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-semibold py-3 rounded-2xl shadow-sm transition shrink-0">번역하기</button>
+        <div class="flex-1 bg-blue-50/40 border border-blue-100/60 rounded-3xl p-4 shadow-sm overflow-y-auto relative">
+            <div id="loadingIndicator" class="absolute top-4 left-4 hidden flex items-center gap-2 text-blue-500 text-sm font-medium z-10">
+                <div class="typing-indicator"><span></span><span></span><span></span></div> <span id="loadingText">번역 중...</span>
+            </div>
+            <div id="targetText" class="flex flex-col gap-3 pt-1"></div>
+        </div>
+    </div>
+
+    <!-- 언어 모달 -->
+    <div id="languageModal" class="absolute inset-0 bg-white z-50 flex-col hidden">
+        <div class="flex items-center px-4 py-4 border-b border-gray-100">
+            <button id="closeModalBtn" class="p-2 text-gray-600 hover:bg-gray-100 rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 id="modalTitle" class="flex-1 text-center text-lg font-bold pr-10">출발 언어</h2>
+        </div>
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <input id="langSearch" type="text" class="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-4 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" placeholder="언어 검색">
+        </div>
+        <div id="languageList" class="flex-1 overflow-y-auto px-2 py-2"></div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="absolute inset-0 bg-white z-[70] flex-col hidden">
+
+        <!-- 설정 메인 목록 -->
+        <div id="settingsListPage" class="absolute inset-0 bg-white flex-col hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h2 class="text-lg font-bold">설정</h2>
+                <button id="closeSettingsBtn" class="p-2 text-gray-600 hover:bg-gray-100 rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div id="settingsMenuList" class="flex-1 overflow-y-auto px-4 py-4 max-w-2xl w-full mx-auto"></div>
+        </div>
+
+        <!-- 엔진 설정 페이지 -->
+        <div id="engineSettingsPage" class="absolute inset-0 bg-white flex-col hidden">
+            <div class="flex items-center px-4 py-4 border-b border-gray-100">
+                <button class="backToSettingsListBtn flex items-center gap-0.5 text-gray-600 hover:bg-gray-100 rounded-lg pl-1 pr-2 py-1.5 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-sm font-medium">뒤로</span>
+                </button>
+                <h2 class="flex-1 text-center text-lg font-bold pr-14">엔진 설정</h2>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-5 space-y-5 max-w-2xl w-full mx-auto">
+                <div class="bg-sky-50 border border-sky-100 rounded-2xl p-4 space-y-3">
+                    <div class="font-bold text-sky-700">✦ Gemini (기본 엔진)</div>
+                    <p class="text-xs text-sky-600 leading-relaxed">
+                        현재 이 환경에서는 Canvas 내장 AI 모델이 자동 연결되어 작동합니다.<br>
+                        별도의 API 키가 필요하지 않으며 텍스트 번역과 사진 분석 모두 즉시 사용 가능합니다.
+                    </p>
+                </div>
+                <div class="bg-violet-50 border border-violet-100 rounded-2xl p-4 space-y-3">
+                    <div class="font-bold text-violet-700">◈ Claude (선택 사항)</div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 mb-1 block">API Key (Anthropic Console)</label>
+                        <input id="claudeKeyInput" type="password" class="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm" placeholder="sk-ant-...">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 mb-1 block">모델명</label>
+                        <input id="claudeModelInput" type="text" class="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm" placeholder="claude-sonnet-4-6">
+                    </div>
+                </div>
+
+                <button id="saveSettingsBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-2xl transition active:scale-95 shadow-sm">저장</button>
+                <p class="text-[11px] text-gray-400 leading-relaxed text-center">입력한 키는 이 브라우저(localStorage)에만 저장됩니다.</p>
+            </div>
+        </div>
+
+        <!-- 소리 및 진동 설정 페이지 -->
+        <div id="soundSettingsPage" class="absolute inset-0 bg-white flex-col hidden">
+            <div class="flex items-center px-4 py-4 border-b border-gray-100">
+                <button class="backToSettingsListBtn flex items-center gap-0.5 text-gray-600 hover:bg-gray-100 rounded-lg pl-1 pr-2 py-1.5 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-sm font-medium">뒤로</span>
+                </button>
+                <h2 class="flex-1 text-center text-lg font-bold pr-14">소리 및 진동</h2>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-5 space-y-6 max-w-2xl w-full mx-auto">
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">음성 음량 (TTS)</label>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-gray-500">0%</span>
+                        <input id="volumeSlider" type="range" min="0" max="100" value="100" class="flex-1 accent-blue-600">
+                        <span id="volumeValue" class="text-xs font-bold text-blue-600 w-10 text-right">100%</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">진동 세기</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="vib-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="off">끄기</button>
+                        <button class="vib-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="weak">약하게</button>
+                        <button class="vib-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="normal">보통</button>
+                        <button class="vib-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="strong">강하게</button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">마이크 듣기 시작, 번역 완료 시 짧게 진동합니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 디스플레이 설정 페이지 -->
+        <div id="displaySettingsPage" class="absolute inset-0 bg-white flex-col hidden">
+            <div class="flex items-center px-4 py-4 border-b border-gray-100">
+                <button class="backToSettingsListBtn flex items-center gap-0.5 text-gray-600 hover:bg-gray-100 rounded-lg pl-1 pr-2 py-1.5 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-sm font-medium">뒤로</span>
+                </button>
+                <h2 class="flex-1 text-center text-lg font-bold pr-14">디스플레이</h2>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-5 space-y-6 max-w-2xl w-full mx-auto">
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">화면 밝기</label>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-gray-500">50%</span>
+                        <input id="brightnessSlider" type="range" min="50" max="100" value="100" class="flex-1 accent-blue-600">
+                        <span id="brightnessValue" class="text-xs font-bold text-blue-600 w-10 text-right">100%</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">글자 크기</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="text-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="small">작게</button>
+                        <button class="text-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="normal">보통</button>
+                        <button class="text-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="large">크게</button>
+                        <button class="text-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="xlarge">아주 크게</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">글자 스타일</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="font-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="default">기본 고딕</button>
+                        <button class="font-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="bold" style="font-weight:700;">고딕 굵게</button>
+                        <button class="font-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="myeongjo" style="font-family:'Nanum Myeongjo', serif;">명조체</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-800 mb-3 block">화면 크기</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="screen-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="small">작게</button>
+                        <button class="screen-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="normal">보통</button>
+                        <button class="screen-btn py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl transition" data-val="large">크게</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 분석 결과 화면 -->
+    <div id="imageResultModal" class="absolute inset-0 bg-[#f0f2f5] z-50 flex-col hidden">
+        <header class="bg-white border-b border-gray-100 shrink-0" style="padding-top:env(safe-area-inset-top);">
+            <div class="flex items-center justify-between max-w-3xl w-full mx-auto px-4 py-3">
+                <div style="margin-left: 4px">
+                    <h1 class="text-lg font-semibold tracking-tight">패턴실무 AI 번역비서</h1>
+                    <p class="text-xs text-gray-400">Gemini 내장 엔진 · 봉제/패턴 전문 용어</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="imgSettingsBtn" class="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full transition" title="설정">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="bg-white border-b border-gray-100 shrink-0">
+            <div class="flex items-center max-w-3xl w-full mx-auto px-4 py-2.5">
+                <button id="closeImageResultBtn" class="flex items-center gap-0.5 text-gray-600 hover:bg-gray-100 rounded-lg pl-1 pr-3 py-1.5 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-sm font-medium">뒤로</span>
+                </button>
+            </div>
+        </div>
+        <div id="imageResultContent" class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto"></div>
+    </div>
+
+    <!-- 대화 번역 모달 -->
+    <div id="conversationModal" class="absolute inset-0 bg-[#f0f2f5] z-50 flex-col hidden">
+        <header class="bg-white border-b border-gray-100 shrink-0" style="padding-top:env(safe-area-inset-top);">
+            <div class="flex items-center justify-between max-w-3xl w-full mx-auto px-4 py-3">
+                <div style="margin-left: 4px">
+                    <h1 class="text-lg font-semibold tracking-tight">패턴실무 AI 번역비서</h1>
+                    <p class="text-xs text-gray-400">Gemini 내장 엔진 · 실시간 양방향 대화</p>
+                </div>
+                <button id="convSettingsBtn" class="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full transition" title="설정">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+        <header class="bg-emerald-600 shrink-0">
+            <div class="flex items-center justify-between max-w-3xl w-full mx-auto px-4 py-3">
+                <button id="convDeleteBtn" class="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16"></path></svg>
+                </button>
+                <div class="flex items-center gap-2 text-white">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path></svg>
+                    <h2 class="text-lg font-semibold tracking-tight">실시간 대화</h2>
+                </div>
+                <button id="closeConvBtn" class="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <div id="convMessages" class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-6 justify-end max-w-3xl w-full mx-auto">
+            <div id="convEmptyState" class="flex-1 flex flex-col items-center justify-center gap-8 text-center px-6">
+                <p class="text-blue-600 font-bold text-base">탭하기 🎤 내가 말하기</p>
+                <p class="text-amber-500 font-bold text-base">탭하기 🎤 상대방 말하기</p>
+            </div>
+        </div>
+
+        <div class="shrink-0 px-[51px] pt-2 max-w-3xl w-full mx-auto" style="padding-bottom:calc(1.5rem + env(safe-area-inset-bottom));">
+            <div class="flex items-center justify-between">
+                <button id="convMicMe" class="w-20 h-20 rounded-full bg-blue-600 active:bg-blue-500 text-white flex items-center justify-center shadow-lg transition select-none" style="touch-action:none;">
+                    <svg class="w-9 h-9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path></svg>
+                </button>
+                <button id="convMicOther" class="w-20 h-20 rounded-full bg-amber-400 active:bg-amber-300 text-white flex items-center justify-center shadow-lg transition select-none" style="touch-action:none;">
+                    <svg class="w-9 h-9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path></svg>
+                </button>
+            </div>
+            <div class="flex items-center justify-center gap-4 mt-3">
+                <button id="convLangMeBtn" class="text-sm font-semibold text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">한국어</button>
+                <button id="convSwapBtn" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition" title="언어 스왑">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4"></path></svg>
+                </button>
+                <button id="convLangOtherBtn" class="text-sm font-semibold text-amber-500 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition">중국어(간체)</button>
+            </div>
+        </div>
+
+        <!-- 언어 선택 바텀시트 -->
+        <div id="convLangSheet" class="absolute inset-0 z-[60] hidden">
+            <div id="convLangSheetBackdrop" class="absolute inset-0 bg-black/40"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-lg max-h-[75%] flex flex-col" style="padding-bottom:env(safe-area-inset-bottom);">
+                <div class="flex items-center justify-center pt-3">
+                    <div class="w-10 h-1.5 bg-gray-200 rounded-full"></div>
+                </div>
+                <div class="px-4 pt-3 pb-1">
+                    <div class="flex bg-gray-100 rounded-xl p-1">
+                        <button id="convTabMe" class="flex-1 text-sm font-semibold py-2 rounded-lg transition">내 언어</button>
+                        <button id="convTabOther" class="flex-1 text-sm font-semibold py-2 rounded-lg transition">상대방 언어</button>
+                    </div>
+                </div>
+                <div id="convLangSheetList" class="flex-1 overflow-y-auto px-2 py-2"></div>
+            </div>
+        </div>
+
+        <!-- 삭제 옵션 바텀시트 -->
+        <div id="convDeleteMenu" class="absolute inset-0 z-[60] hidden">
+            <div id="convDeleteMenuBackdrop" class="absolute inset-0 bg-black/40"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-lg flex flex-col" style="padding-bottom:env(safe-area-inset-bottom);">
+                <div class="flex items-center justify-center pt-3">
+                    <div class="w-10 h-1.5 bg-gray-200 rounded-full"></div>
+                </div>
+                <div class="p-4 flex flex-col gap-2">
+                    <button id="convDeleteAllBtn" class="w-full text-center py-3.5 rounded-xl font-semibold text-red-500 hover:bg-red-50 transition">전체 삭제</button>
+                    <button id="convDeletePartialBtn" class="w-full text-center py-3.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition">부분 삭제</button>
+                    <button id="convDeleteCancelBtn" class="w-full text-center py-3.5 rounded-xl font-semibold text-gray-400 hover:bg-gray-50 transition">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+  </div>
+
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40" style="padding-bottom:env(safe-area-inset-bottom);">
+      <div class="flex items-center justify-around max-w-3xl w-full mx-auto py-3 px-6">
+          <button id="chatIconBtn" class="w-16 h-16 rounded-full bg-gray-400 hover:bg-gray-500 text-white flex items-center justify-center transition active:scale-95 shadow-sm" title="실시간 대화">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path></svg>
+          </button>
+          <button id="micIconBtn" class="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition active:scale-95 shadow-md" title="음성 인식">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path></svg>
+          </button>
+          <button id="cameraIconBtn" class="w-16 h-16 rounded-full bg-gray-400 hover:bg-gray-500 text-white flex items-center justify-center transition active:scale-95 shadow-sm" title="카메라">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M9 3L7.17 5H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"></path></svg>
+          </button>
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden">
+      </div>
+  </div>
+
+  <div id="toast" class="toast">복사되었습니다</div>
+
+  <!-- 커스텀 알림 모달 -->
+  <div id="alertModal" class="absolute inset-0 bg-black/40 z-[100] flex items-center justify-center hidden p-4">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl flex flex-col gap-4" style="animation: slideUp 0.2s ease-out;">
+          <h3 class="text-lg font-bold text-gray-800">알림</h3>
+          <p id="alertMessage" class="text-sm text-gray-600 leading-relaxed"></p>
+          <div class="flex justify-end pt-2">
+              <button id="closeAlertBtn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition">확인</button>
+          </div>
+      </div>
+  </div>
+
+  <script>
+    // ----- Gemini Canvas Preview 환경 대응 변수 -----
+    const apiKey = ""; // Canvas 환경 제공 내장 키
+    // ---------------------------------------------
+
+    const LS = {
+        cKey:'gems_tr_claude_key', cModel:'gems_tr_claude_model', convMy:'gems_tr_conv_my', convOther:'gems_tr_conv_other',
+        volume: 'gems_tr_vol', vibrate: 'gems_tr_vib', brightness: 'gems_tr_bri', textSize: 'gems_tr_tsize', fontStyle: 'gems_tr_fstyle', screenSize: 'gems_tr_ssize'
+    };
+    function lsGet(k,d=''){ try{ return localStorage.getItem(k)??d; }catch(e){ return d; } }
+    function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+    let claudeKey = lsGet(LS.cKey) || '';
+    let claudeModel = lsGet(LS.cModel) || 'claude-sonnet-4-6';
+    let useGemini = true;
+    let useClaude = !!claudeKey;
+
+    let sysSettings = {
+        volume: parseInt(lsGet(LS.volume, '100'), 10),
+        vibrate: lsGet(LS.vibrate, 'normal'),
+        brightness: parseInt(lsGet(LS.brightness, '100'), 10),
+        textSize: lsGet(LS.textSize, 'normal'),
+        fontStyle: lsGet(LS.fontStyle, 'default'),
+        screenSize: lsGet(LS.screenSize, 'normal')
+    };
+
+    const displayStyleEl = document.createElement('style');
+    document.head.appendChild(displayStyleEl);
+
+    function applyDisplaySettings() {
+        document.body.style.filter = `brightness(${sysSettings.brightness}%)`;
+        const sizeMap = { small: '14px', normal: '16px', large: '18px', xlarge: '20px' };
+        document.documentElement.style.fontSize = sizeMap[sysSettings.textSize];
+        let fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        let fontWeight = "normal";
+        if(sysSettings.fontStyle === 'bold') fontWeight = "600";
+        else if(sysSettings.fontStyle === 'myeongjo') fontFamily = "'Nanum Myeongjo', serif";
+        document.body.style.fontFamily = fontFamily;
+        document.body.style.fontWeight = fontWeight;
+        const widthMap = { small: '36rem', normal: '48rem', large: '100%' };
+        displayStyleEl.innerHTML = `.max-w-3xl { max-width: ${widthMap[sysSettings.screenSize]} !important; }`;
+    }
+    applyDisplaySettings();
+
+    function triggerVibrate() {
+        const map = { off: 0, weak: 30, normal: 60, strong: 100 };
+        const dur = map[sysSettings.vibrate] || 0;
+        if(dur > 0 && navigator.vibrate) { try { navigator.vibrate(dur); } catch(e){} }
+    }
+
+    let currentSourceLang="언어 감지", currentTargetLangs=["중국어(간체)","영어"];
+    let selectingMode=null, reqId=0, controller=null;
+
+    const allLanguages=["언어 감지","한국어","중국어(간체)","중국어(번체)","영어","일본어","베트남어","인도네시아어","태국어","캄보디아어","미얀마어","말레이어","타갈로그어","독일어","프랑스어","스페인어","포르투갈어","이탈리아어","러시아어","터키어","아랍어","힌디어","벵골어","우르두어","네덜란드어","폴란드어","체코어","그리스어","스웨덴어","노르웨이어","덴마크어","핀란드어","헝가리어","루마니아어","우크라이나어","히브리어","페르시아어"];
+
+    const glossaryContext=`가로(위사방향)=CROSSWISE GRAIN=横向纹理|가봉=DRAPING=垂坠感|가슴주머니=CHEST POCKET=胸口袋|가위집내기=NOTCH=豁口|겉감=SHELL/OUTSHELL=面料|안감=LINING=衬里|게싱(모심지)=HAIR INTERLINING=毛衬|결(기모방향)=GRAIN=纹理|기본패턴=BASIC PATTERN=基本纸样|다트=DART=尖褶|단추구멍=BUTTONHOLE=纽扣眼|뒷품/등품=BACK BODY WIDTH=后身宽|라펠=LAPEL=翻领|마커=MARKER=排料图|맞춤표시=NOTCH=刻口|목둘레=NECK ROUND=颈围|밑단=HEM=下摆|바텍=BAR TACK=止缝|소매기장=SLEEVE LENGTH=袖长|소매산=SLEEVE CAP=袖山|시접=SEAM ALLOWANCE=缝份|암홀(진동둘레)=ARMHOLE=袖窿|앞마이폭=PLACKET WIDTH=前襟宽|어깨선=SHOULDER LINE=肩线|옆솔기=SIDE SEAM=侧缝|이새(여유분)=EASE=松量|접착심지=FUSIBLE INTERLINING=粘合衬|총길이=FULL LENGTH=总长|패턴=PATTERN=纸样|프레스=PRESS=压烫|쌍침=Double Needle Stitch|나나인치=Straight Buttonhole|큐큐=Keyhole Buttonhole|니혼바리=Double Needle Chainstitch|오드람쁘=Flat Lock Coverstitch|아바타(Avatar)=AVATAR=模特|시뮬레이션=SIMULATION=模拟|입체재단(가봉)=DRAPING=立体裁剪`;
+
+    const $=id=>document.getElementById(id);
+    const sourceText=$('sourceText'),targetText=$('targetText'),clearBtn=$('clearBtn'),
+          loadingIndicator=$('loadingIndicator'),toastEl=$('toast'),
+          sourceLangText=$('sourceLangText'),targetLangText=$('targetLangText'),
+          dotC=$('dotC');
+
+    function showAlertModal(msg) {
+        $('alertMessage').innerText = msg;
+        $('alertModal').classList.remove('hidden');
+    }
+    $('closeAlertBtn').addEventListener('click', () => $('alertModal').classList.add('hidden'));
+
+    async function fetchWithBackoff(url, options, maxRetries = 5) {
+        const delays = [1000, 2000, 4000, 8000, 16000];
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) {
+                    if (res.status === 429 || res.status >= 500) {
+                        if (i < maxRetries - 1) { await new Promise(r => setTimeout(r, delays[i])); continue; }
+                    }
+                    throw res;
+                }
+                return res;
+            } catch (e) {
+                if (i < maxRetries - 1 && (!e.status || e.status === 429 || e.status >= 500)) {
+                    await new Promise(r => setTimeout(r, delays[i])); continue;
+                }
+                throw e;
+            }
+        }
+    }
+
+    function updateTargetLangText(){
+        const langs=currentTargetLangs;
+        targetLangText.innerText=langs.length<=2?langs.join(', '):`${langs[0]} 외 +${langs.length-1}`;
+    }
+
+    function getGlossarySystemPrompt(instruction){
+        return `당신은 30년 경력의 의류 브랜드(리앤펑, 행텐) 수석 패턴실장을 위한 봉제/패턴/CLO3D 전문 번역가입니다. 아래 용어 사전을 최우선으로 적용하세요.\n[용어사전] ${glossaryContext}\n${instruction}`;
+    }
+    function getSystemPrompt(){
+        return getGlossarySystemPrompt(`반드시 JSON 형식으로만 응답하세요. 예: {"중국어(간체)": "...", "영어": "..."}`);
+    }
+    function getConvSystemPrompt(){
+        return getGlossarySystemPrompt(`번역문 한 줄만 출력하고 다른 설명은 절대 하지 마세요.`);
+    }
+    function getUserMessage(text){
+        const t=currentTargetLangs.join(', ');
+        const src=currentSourceLang==="언어 감지"?'':` (출발언어: ${currentSourceLang})`;
+        return `다음을 번역해줘 (패턴봉제 전문용어 우선 적용)${src}. 도착 언어: [${t}]. JSON key는 언어명과 동일: ${text}`;
+    }
+
+    function parseJSONLoose(str){
+        if(!str) return null;
+        const c=String(str).replace(/```json/gi,'').replace(/```/g,'').trim();
+        try{ return JSON.parse(c); }catch(e){}
+        const m=c.match(/\{[\s\S]*\}/);
+        if(m){ try{ return JSON.parse(m[0]); }catch(e2){} }
+        return null;
+    }
+    function findValueLoose(obj,lang){
+        if(!obj) return null;
+        if(obj[lang]!=null) return obj[lang];
+        const norm=s=>String(s).replace(/[\s()（）]/g,'').toLowerCase();
+        const t=norm(lang);
+        for(const k of Object.keys(obj)){ const nk=norm(k); if(nk===t||nk.includes(t)||t.includes(nk)) return obj[k]; }
+        return null;
+    }
+
+    function friendlyErrorMessage(err){
+        if(err?.code==='NO_KEY') return '설정에서 API 키를 입력해주세요';
+        if(err?.status===429) return '이용량이 많습니다. 잠시 후 다시 시도해주세요.';
+        return '번역 오류가 발생했습니다. 다시 시도해주세요';
+    }
+
+    async function fetchGemini(text,signal){
+        const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const t=currentTargetLangs.join(', ');
+        const message=`다음 텍스트를 ${t} 로 번역해줘. 반드시 JSON 형식으로만 응답해. 다른 말 하지 마. 예시: {"중국어(간체)": "你好", "영어": "Hello"}\n\n번역할 텍스트: ${text}`;
+        const res = await fetchWithBackoff(url, {
+            method:'POST', headers:{'Content-Type':'application/json'}, signal,
+            body:JSON.stringify({
+                contents:[{parts:[{text:message}]}],
+                systemInstruction: { parts: [{ text: getGlossarySystemPrompt("반드시 JSON 형식으로 응답하세요.") }] },
+                generationConfig:{temperature:0.1, responseMimeType:"application/json"}
+            })
+        });
+        const data=await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    }
+
+    async function fetchClaude(text,signal){
+        if(!claudeKey){ const e=new Error("NO_KEY"); e.code="NO_KEY"; throw e; }
+        const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", signal,
+            headers:{"content-type":"application/json","x-api-key":claudeKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+            body:JSON.stringify({ model:claudeModel||"claude-sonnet-4-6", max_tokens:1024, system:getSystemPrompt(), messages:[{role:"user",content:getUserMessage(text)}] }) });
+        if(!res.ok){ const body=await res.text().catch(()=>''); console.error('Claude API error',res.status,body); const e=new Error('Claude API error'); e.status=res.status; throw e; }
+        const data=await res.json();
+        return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    }
+
+    async function handleTranslate(){
+        const text=sourceText.value.trim();
+        if(!text){ targetText.innerHTML=''; return; }
+        const engines=[];
+        if(useGemini) engines.push('gemini');
+        if(useClaude) engines.push('claude');
+        if(engines.length===0){ targetText.innerHTML='<div class="bg-white rounded-2xl p-4 text-amber-600 text-sm">엔진이 모두 꺼져 있습니다. 설정을 확인해주세요.</div>'; return; }
+        const myId=++reqId;
+        if(controller) controller.abort();
+        controller=new AbortController();
+        loadingIndicator.classList.remove('hidden');
+        targetText.innerHTML='';
+        triggerVibrate();
+        const tasks=engines.map(eng=>eng==='gemini'?fetchGemini(text,controller.signal):fetchClaude(text,controller.signal));
+        const settled=await Promise.allSettled(tasks);
+        if(myId!==reqId) return;
+        const parsed={};
+        settled.forEach((res,i)=>{
+            const eng=engines[i];
+            if(res.status==='fulfilled'){ const obj=parseJSONLoose(res.value); parsed[eng]=obj?{obj}:{error:'번역 오류가 발생했습니다. 다시 시도해주세요'}; }
+            else if(res.reason?.name==='AbortError') parsed[eng]={error:'취소됨'};
+            else{ console.error(`[${eng}] translate error`,res.reason); parsed[eng]={error:friendlyErrorMessage(res.reason)}; }
+        });
+        renderResults(parsed,engines);
+        loadingIndicator.classList.add('hidden');
+        triggerVibrate();
+    }
+
+    function copyText(v){
+        const t=document.createElement('textarea'); t.value=v; document.body.appendChild(t); t.select();
+        try{ document.execCommand('copy'); toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1800); }catch(e){}
+        document.body.removeChild(t);
+    }
+
+    const langCodes={
+        "중국어(간체)":"zh-CN","중국어(번체)":"zh-TW","영어":"en-US","일본어":"ja-JP",
+        "베트남어":"vi-VN","인도네시아어":"id-ID","태국어":"th-TH","캄보디아어":"km-KH",
+        "미얀마어":"my-MM","말레이어":"ms-MY","타갈로그어":"tl-PH","독일어":"de-DE",
+        "프랑스어":"fr-FR","스페인어":"es-ES","포르투갈어":"pt-PT","이탈리아어":"it-IT",
+        "러시아어":"ru-RU","터키어":"tr-TR","아랍어":"ar-SA","힌디어":"hi-IN",
+        "벵골어":"bn-BD","우르두어":"ur-PK","네덜란드어":"nl-NL","폴란드어":"pl-PL",
+        "체코어":"cs-CZ","그리스어":"el-GR","스웨덴어":"sv-SE","노르웨이어":"no-NO",
+        "덴마크어":"da-DK","핀란드어":"fi-FI","헝가리어":"hu-HU","루마니아어":"ro-RO",
+        "우크라이나어":"uk-UA","히브리어":"he-IL","페르시아어":"fa-IR","한국어":"ko-KR",
+        "크메르어(캄보디아)":"km-KH","벵골어(방글라데시)":"bn-BD"
+    };
+
+    // 앱 시작 시 음성 목록 미리 로드
+    let _voicesLoaded = false;
+    function preloadVoices(){
+        const v = speechSynthesis.getVoices();
+        if(v.length > 0){ _voicesLoaded = true; }
+    }
+    preloadVoices();
+    speechSynthesis.addEventListener('voiceschanged', ()=>{ _voicesLoaded = true; });
+
+    function speakText(text, lang){
+        if(!text || text==='—') return;
+        const langCode = langCodes[lang] || 'ko-KR';
+
+        const doSpeak = () => {
+            speechSynthesis.cancel();
+            setTimeout(()=>{
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = langCode;
+                u.volume = sysSettings.volume / 100;
+                u.rate = 0.9;
+
+                // 언어에 맞는 음성 선택
+                const voices = speechSynthesis.getVoices();
+                const langPrefix = langCode.split('-')[0];
+                // 1순위: 정확히 일치, 2순위: 언어 앞부분 일치
+                const match = voices.find(v => v.lang === langCode)
+                           || voices.find(v => v.lang.startsWith(langPrefix))
+                           || voices.find(v => v.lang.toLowerCase().startsWith(langPrefix.toLowerCase()));
+                if(match) u.voice = match;
+
+                u.onerror = (e) => console.warn('TTS error:', e.error, lang, langCode);
+                speechSynthesis.speak(u);
+            }, 50);
+        };
+
+        if(_voicesLoaded || speechSynthesis.getVoices().length > 0){
+            doSpeak();
+        } else {
+            // 음성 목록이 아직 로드 안 됐으면 대기
+            speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true });
+        }
+    }
+
+    async function fetchPronunciation(text,lang){
+        const prompt=`다음 ${lang} 텍스트를 한국어 발음으로만 표기해줘. 다른 설명 없이 한 줄로만 응답해.\n텍스트: ${text}`;
+        try{
+            const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const res = await fetchWithBackoff(url, {
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1}})
+            });
+            const data=await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
+        }catch(e){ return null; }
+    }
+
+    function engineMeta(eng){ return eng==='gemini'?{label:'✦ Gemini',text:'text-sky-600',bg:'bg-sky-50/60',border:'border-sky-100'}:{label:'◈ Claude',text:'text-violet-600',bg:'bg-violet-50/60',border:'border-violet-100'}; }
+
+    function makeRow(eng,val,lang){
+        const m=engineMeta(eng);
+        const row=document.createElement('div'); row.className=`rounded-xl p-3 ${m.bg} border ${m.border} flex flex-col gap-1.5`;
+        const head=document.createElement('div'); head.className="flex justify-between items-center";
+        const label=document.createElement('span'); label.className=`text-[11px] font-bold ${m.text}`; label.innerText=m.label; head.appendChild(label);
+        const body=document.createElement('div');
+        if(val.error){
+            body.className="text-[13px] text-gray-400 italic";
+            body.innerText=val.error;
+            row.appendChild(head); row.appendChild(body); return row;
+        }
+        body.className="text-[15px] leading-relaxed font-medium break-words whitespace-pre-wrap";
+        body.innerText=val.text||'—';
+        const btns=document.createElement('div'); btns.className="flex items-center gap-0.5";
+        const speakBtn=document.createElement('button');
+        speakBtn.className="p-1 text-gray-400 hover:text-emerald-500 hover:bg-white rounded-lg transition"; speakBtn.title="음성 재생";
+        speakBtn.innerHTML=`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        speakBtn.onclick=()=>speakText(val.text||'',lang);
+        const copyBtn=document.createElement('button');
+        copyBtn.className="p-1 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg transition";
+        copyBtn.innerHTML=`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`;
+        copyBtn.onclick=()=>copyText(val.text||'');
+        btns.appendChild(speakBtn); btns.appendChild(copyBtn); head.appendChild(btns);
+        row.appendChild(head); row.appendChild(body); return row;
+    }
+
+    function renderResults(parsed,engines){
+        targetText.innerHTML='';
+        currentTargetLangs.forEach(lang=>{
+            const card=document.createElement('div');
+            card.className="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 flex flex-col gap-2";
+            card.style.animation="slideUp .3s ease-out";
+            const header=document.createElement('div'); header.className="flex justify-between items-center border-b border-gray-50 pb-2";
+            const title=document.createElement('span'); title.className="text-sm font-bold text-blue-600"; title.innerText=lang; header.appendChild(title);
+            const vals={};
+            engines.forEach(eng=>{ const p=parsed[eng]; if(p.error) vals[eng]={error:p.error}; else{ const v=findValueLoose(p.obj,lang); vals[eng]={text:v!=null?String(v):'—'}; } });
+            if(engines.length===2&&!vals.gemini?.error&&!vals.claude?.error){
+                const norm=s=>String(s).replace(/\s/g,'').toLowerCase();
+                const same=norm(vals.gemini.text)===norm(vals.claude.text);
+                const badge=document.createElement('span');
+                badge.className=same?"text-[11px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full":"text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full";
+                badge.innerText=same?"✓ 일치":"≠ 차이"; header.appendChild(badge);
+            }
+            card.appendChild(header);
+            engines.forEach(eng=>card.appendChild(makeRow(eng,vals[eng],lang)));
+            const pronRow=document.createElement('div'); pronRow.className="flex items-center gap-2 pt-2 mt-1 border-t border-gray-100";
+            const pronLabel=document.createElement('span'); pronLabel.className="text-[10px] font-bold text-gray-400 shrink-0"; pronLabel.innerText="발음";
+            const pronText=document.createElement('span'); pronText.className="text-[12px] text-gray-500 italic leading-relaxed"; pronText.innerText="…";
+            pronRow.appendChild(pronLabel); pronRow.appendChild(pronText); card.appendChild(pronRow);
+            const firstEng=engines.find(e=>vals[e]&&!vals[e].error&&vals[e].text&&vals[e].text!=='—');
+            const pText=firstEng?vals[firstEng].text:null;
+            if(pText&&useGemini&&lang!=='한국어') fetchPronunciation(pText,lang).then(p=>{ pronText.innerText=p||'—'; });
+            else pronRow.remove();
+            targetText.appendChild(card);
+        });
+    }
+
+    sourceText.addEventListener('input',()=>{ clearBtn.classList.toggle('hidden',sourceText.value.length===0); });
+    $('translateBtn').addEventListener('click',()=>{ if(sourceText.value.trim()) handleTranslate(); });
+    sourceText.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); if(sourceText.value.trim()) handleTranslate(); } });
+    clearBtn.addEventListener('click',()=>{ sourceText.value=''; targetText.innerHTML=''; clearBtn.classList.add('hidden'); });
+
+    function refreshChips(){
+        const cOk= !!claudeKey;
+        const cChip=$('claudeChip'), cD=$('dotC');
+        $('geminiChip').className="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-full transition border bg-sky-50 text-sky-700 border-sky-200";
+        $('geminiDot').className="w-2 h-2 rounded-full bg-sky-500";
+        cChip.disabled=!cOk;
+        if(useClaude&&cOk){ cChip.className="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-full transition border bg-violet-50 text-violet-700 border-violet-200"; cD.className="w-2 h-2 rounded-full bg-violet-500"; }
+        else{ cChip.className="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-full transition border bg-gray-50 text-gray-400 border-gray-200"+(cOk?'':' opacity-50 cursor-not-allowed'); cD.className="w-2 h-2 rounded-full bg-gray-300"; }
+    }
+    $('claudeChip').addEventListener('click',()=>{ if(!claudeKey) return; useClaude=!useClaude; refreshChips(); if(sourceText.value.trim()) handleTranslate(); });
+
+    function showModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
+    function hideModal(el){ el.classList.add('hidden'); el.classList.remove('flex'); }
+
+    const settingsMenuItems=[
+        { label:'엔진 설정', onClick:()=>showSettingsPage('engine') },
+        { label:'소리 및 진동', onClick:()=>showSettingsPage('sound') },
+        { label:'디스플레이', onClick:()=>showSettingsPage('display') }
+    ];
+    function renderSettingsMenu(){
+        const list=$('settingsMenuList'); list.innerHTML='';
+        settingsMenuItems.forEach(item=>{
+            const row=document.createElement('button');
+            row.type='button';
+            row.className='w-full flex items-center justify-between px-4 py-4 bg-white hover:bg-gray-50 rounded-xl transition text-left border-b border-gray-50 last:border-b-0';
+            row.innerHTML=`<span class="text-sm font-medium text-gray-800">${item.label}</span><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>`;
+            row.addEventListener('click',item.onClick);
+            list.appendChild(row);
+        });
+    }
+
+    function showSettingsPage(page){
+        hideModal($('settingsListPage'));
+        hideModal($('engineSettingsPage'));
+        hideModal($('soundSettingsPage'));
+        hideModal($('displaySettingsPage'));
+        if(page==='engine'){
+            $('claudeKeyInput').value=claudeKey; $('claudeModelInput').value=claudeModel;
+            showModal($('engineSettingsPage'));
+        } else if(page==='sound'){
+            $('volumeSlider').value=sysSettings.volume; $('volumeValue').innerText=sysSettings.volume+'%';
+            updateSettingActiveBtn('.vib-btn', sysSettings.vibrate);
+            showModal($('soundSettingsPage'));
+        } else if(page==='display'){
+            $('brightnessSlider').value=sysSettings.brightness; $('brightnessValue').innerText=sysSettings.brightness+'%';
+            updateSettingActiveBtn('.text-btn', sysSettings.textSize);
+            updateSettingActiveBtn('.font-btn', sysSettings.fontStyle);
+            updateSettingActiveBtn('.screen-btn', sysSettings.screenSize);
+            showModal($('displaySettingsPage'));
+        } else {
+            showModal($('settingsListPage'));
+        }
+    }
+
+    function openSettingsModal(){
+        showSettingsPage('list');
+        showModal($('settingsModal'));
+    }
+
+    $('settingsBtn').addEventListener('click',openSettingsModal);
+    $('convSettingsBtn').addEventListener('click',openSettingsModal);
+    $('closeSettingsBtn').addEventListener('click',()=>hideModal($('settingsModal')));
+    document.querySelectorAll('.backToSettingsListBtn').forEach(btn => {
+        btn.addEventListener('click',()=>showSettingsPage('list'));
+    });
+
+    function updateSettingActiveBtn(selector, currentVal) {
+        document.querySelectorAll(selector).forEach(btn => {
+            if(btn.dataset.val === currentVal) {
+                btn.classList.remove('text-gray-700', 'border-gray-200');
+                btn.classList.add('bg-blue-50', 'border-blue-500', 'text-blue-600');
+            } else {
+                btn.classList.remove('bg-blue-50', 'border-blue-500', 'text-blue-600');
+                btn.classList.add('text-gray-700', 'border-gray-200');
+            }
+        });
+    }
+    function bindSettingBtns(selector, key, callback) {
+        document.querySelectorAll(selector).forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const val = e.currentTarget.dataset.val;
+                sysSettings[key] = val;
+                lsSet(LS[key], val);
+                updateSettingActiveBtn(selector, val);
+                if(callback) callback();
+            });
+        });
+    }
+
+    $('volumeSlider').addEventListener('input', e => {
+        sysSettings.volume = e.target.value; $('volumeValue').innerText = e.target.value + '%'; lsSet(LS.volume, e.target.value);
+    });
+    $('brightnessSlider').addEventListener('input', e => {
+        sysSettings.brightness = e.target.value; $('brightnessValue').innerText = e.target.value + '%'; lsSet(LS.brightness, e.target.value); applyDisplaySettings();
+    });
+
+    bindSettingBtns('.vib-btn', 'vibrate');
+    bindSettingBtns('.text-btn', 'textSize', applyDisplaySettings);
+    bindSettingBtns('.font-btn', 'fontStyle', applyDisplaySettings);
+    bindSettingBtns('.screen-btn', 'screenSize', applyDisplaySettings);
+
+    $('saveSettingsBtn').addEventListener('click',()=>{
+        claudeKey=$('claudeKeyInput').value.trim(); claudeModel=$('claudeModelInput').value.trim()||'claude-sonnet-4-6';
+        lsSet(LS.cKey,claudeKey); lsSet(LS.cModel,claudeModel);
+        if(claudeKey&&!useClaude) useClaude=true;
+        if(!claudeKey) useClaude=false;
+        refreshChips(); hideModal($('settingsModal'));
+        if(sourceText.value.trim()) handleTranslate();
+    });
+
+    function renderLanguageList(term=""){
+        const list=$('languageList'); list.innerHTML="";
+        let langs=allLanguages;
+        if(selectingMode==='target') langs=langs.filter(l=>l!=="언어 감지");
+        if(term) langs=langs.filter(l=>l.includes(term));
+        langs.forEach(lang=>{
+            const btn=document.createElement('button');
+            const selected=(selectingMode==='source'&&lang===currentSourceLang)||(selectingMode==='target'&&currentTargetLangs.includes(lang));
+            btn.className=`w-full text-left px-4 py-3 rounded-xl transition font-medium flex items-center justify-between ${selected?'text-blue-600 bg-blue-50/60':'text-gray-700 hover:bg-blue-50'}`;
+            btn.innerText=lang;
+            if(selected) btn.innerHTML+=`<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            btn.onclick=()=>selectLanguage(lang);
+            list.appendChild(btn);
+        });
+    }
+    function openLangModal(mode){
+        selectingMode=mode;
+        $('modalTitle').innerText=mode==='source'?"출발 언어":"도착 언어 (다중 선택)";
+        $('langSearch').value=""; renderLanguageList(); showModal($('languageModal'));
+    }
+    function selectLanguage(lang){
+        if(selectingMode==='source'){
+            currentSourceLang=lang; sourceLangText.innerText=lang; hideModal($('languageModal'));
+            if(sourceText.value.trim()) handleTranslate();
+        } else {
+            if(currentTargetLangs.includes(lang)){ if(currentTargetLangs.length>1) currentTargetLangs=currentTargetLangs.filter(l=>l!==lang); }
+            else currentTargetLangs.push(lang);
+            updateTargetLangText();
+            renderLanguageList($('langSearch').value.trim());
+            if(sourceText.value.trim()) handleTranslate();
+        }
+    }
+    $('sourceLangBtn').addEventListener('click',()=>openLangModal('source'));
+    $('targetLangBtn').addEventListener('click',()=>openLangModal('target'));
+    $('closeModalBtn').addEventListener('click',()=>hideModal($('languageModal')));
+    $('langSearch').addEventListener('input',e=>renderLanguageList(e.target.value.trim()));
+    $('swapLangBtn').addEventListener('click',()=>{
+        const ns=currentTargetLangs[0]; const nt=currentSourceLang==="언어 감지"?"영어":currentSourceLang;
+        currentSourceLang=ns; currentTargetLangs=[nt];
+        sourceLangText.innerText=currentSourceLang; updateTargetLangText();
+        if(sourceText.value.trim()) handleTranslate();
+    });
+
+    function resizeImageFile(file,maxDim=1600,quality=0.8){
+        return new Promise((resolve,reject)=>{
+            const url=URL.createObjectURL(file);
+            const img=new Image();
+            img.onload=()=>{
+                URL.revokeObjectURL(url);
+                const {width,height}=img;
+                const scale=Math.min(1,maxDim/Math.max(width,height));
+                const targetW=Math.max(1,Math.round(width*scale));
+                const targetH=Math.max(1,Math.round(height*scale));
+                const canvas=document.createElement('canvas');
+                canvas.width=targetW; canvas.height=targetH;
+                const ctx=canvas.getContext('2d');
+                ctx.drawImage(img,0,0,targetW,targetH);
+                canvas.toBlob(blob=>{ if(!blob){ reject(new Error('이미지 리사이즈 실패')); return; } resolve(blob); },'image/jpeg',quality);
+            };
+            img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('이미지 로드 실패')); };
+            img.src=url;
+        });
+    }
+    function fileToBase64(file){
+        return new Promise((resolve,reject)=>{
+            const reader=new FileReader();
+            reader.onload=()=>{
+                const m=/^data:(.+);base64,(.*)$/.exec(reader.result||'');
+                if(!m){ reject(new Error('이미지 변환 실패')); return; }
+                resolve({mediaType:m[1],base64:m[2]});
+            };
+            reader.onerror=()=>reject(reader.error);
+            reader.readAsDataURL(file);
+        });
+    }
+    function friendlyImageErrorMessage(err){
+        if(err?.code==='NO_CANDIDATE') return 'Gemini가 이미지를 분석하지 못했습니다. 다시 시도해주세요';
+        if(err?.status===400) return 'Gemini 요청 오류가 발생했습니다.';
+        if(err?.status===429) return 'Gemini 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요';
+        return '이미지 분석 중 오류가 발생했습니다. 다시 시도해주세요';
+    }
+    async function fetchGeminiImageAnalysis(base64Data,mediaType,signal){
+        const instruction=`이 사진 안에 보이는 모든 텍스트를 빠짐없이 읽어서, 항목이 있으면 항목별로(계약 P/O번호, 색상, 수량 등) 원문과 한국어 번역을 정리해서 보여줘. 항목 구분이 없으면 문장 단위로 원문/번역을 정리해줘. 반드시 JSON 형식으로만 응답하고 다른 설명은 하지 마. 형식: {"items":[{"label":"항목명(없으면 빈 문자열)","original":"원문 텍스트","translation":"한국어 번역"}],"full_text":"번역된 한국어 내용을 자연스럽게 이어붙인 전체 문장(TTS용)"}`;
+        const promptText=getGlossarySystemPrompt(instruction);
+        const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const res = await fetchWithBackoff(url, {
+            method:'POST', signal, headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                contents:[{ role: "user", parts:[{text:promptText},{inlineData:{mimeType:mediaType,data:base64Data}}] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+        const data=await res.json();
+        const text=data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if(!text){ const e=new Error('NO_CANDIDATE'); e.code='NO_CANDIDATE'; throw e; }
+        return text;
+    }
+
+    const imageResultContent=$('imageResultContent');
+    function showImageLoading(){
+        imageResultContent.innerHTML=`<div class="flex items-center gap-2 text-blue-500 text-sm font-medium justify-center py-16">
+            <div class="typing-indicator"><span></span><span></span><span></span></div> 이미지를 분석하고 있어요...
+        </div>`;
+    }
+    function showImageError(msg){ imageResultContent.innerHTML=`<div class="bg-white rounded-2xl p-4 text-amber-600 text-sm">${msg}</div>`; }
+    function renderImageAnalysisResult(data){
+        imageResultContent.innerHTML='';
+        const card=document.createElement('div');
+        card.className="bg-white rounded-2xl p-5 shadow-sm border border-sky-100 flex flex-col gap-1";
+        card.style.animation="slideUp .3s ease-out";
+        const header=document.createElement('div'); header.className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2";
+        const badge=document.createElement('span'); badge.className="text-sm font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full"; badge.innerText="✦ Gemini · 이미지 분석";
+        header.appendChild(badge);
+        const btns=document.createElement('div'); btns.className="flex items-center gap-1";
+        const speakBtn=document.createElement('button');
+        speakBtn.className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-gray-50 rounded-lg transition"; speakBtn.title="다시 듣기";
+        speakBtn.innerHTML=`<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        speakBtn.onclick=()=>speakText(data.full_text||'','한국어');
+        const copyBtn=document.createElement('button');
+        copyBtn.className="p-2 text-gray-400 hover:text-blue-500 hover:bg-gray-50 rounded-lg transition"; copyBtn.title="복사";
+        copyBtn.innerHTML=`<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`;
+        copyBtn.onclick=()=>copyText(data.full_text||'');
+        btns.appendChild(speakBtn); btns.appendChild(copyBtn); header.appendChild(btns);
+        card.appendChild(header);
+        const items=Array.isArray(data.items)?data.items:[];
+        if(items.length===0){
+            const empty=document.createElement('div'); empty.className="text-sm text-gray-400 italic py-2"; empty.innerText="텍스트를 인식하지 못했습니다.";
+            card.appendChild(empty);
+        } else {
+            items.forEach(it=>{
+                const row=document.createElement('div'); row.className="flex flex-col gap-1 py-3 border-b border-gray-50 last:border-b-0";
+                if(it.label){ const labelEl=document.createElement('div'); labelEl.className="text-xs font-bold text-gray-400"; labelEl.innerText=it.label; row.appendChild(labelEl); }
+                const origEl=document.createElement('div'); origEl.className="text-base text-gray-400 break-words whitespace-pre-wrap"; origEl.innerText=it.original||'';
+                const transEl=document.createElement('div'); transEl.className="text-xl font-bold text-gray-800 break-words whitespace-pre-wrap leading-snug"; transEl.innerText=it.translation||'';
+                row.appendChild(origEl); row.appendChild(transEl);
+                card.appendChild(row);
+            });
+        }
+        imageResultContent.appendChild(card);
+    }
+
+    let imgReqId=0, imgController=null;
+    async function handleImageAnalyze(file){
+        if(imgController) imgController.abort();
+        imgController=new AbortController();
+        const myId=++imgReqId;
+        showModal($('imageResultModal'));
+        showImageLoading();
+        try{
+            const resizedBlob=await resizeImageFile(file);
+            const {base64,mediaType}=await fileToBase64(resizedBlob);
+            const raw=await fetchGeminiImageAnalysis(base64,mediaType,imgController.signal);
+            if(myId!==imgReqId) return;
+            const parsed=parseJSONLoose(raw);
+            if(!parsed){ showImageError('이미지 분석 결과를 해석하지 못했습니다. 다시 시도해주세요'); }
+            else{ renderImageAnalysisResult(parsed); }
+        }catch(e){
+            if(myId!==imgReqId||e.name==='AbortError') return;
+            showImageError(friendlyImageErrorMessage(e));
+        }
+    }
+
+    let micRecognition=null, micListening=false, micFinalTranscript='', micSilenceTimer=null, micIntentionalStop=false;
+    function clearMicSilenceTimer(){ if(micSilenceTimer){ clearTimeout(micSilenceTimer); micSilenceTimer=null; } }
+    function resetMicSilenceTimer(){
+        clearMicSilenceTimer();
+        micSilenceTimer=setTimeout(()=>{ micIntentionalStop=true; if(micRecognition) micRecognition.stop(); },1500);
+    }
+    function finalizeMicRecording(){
+        micListening=false; micIntentionalStop=false;
+        clearMicSilenceTimer();
+        $('micIconBtn').classList.remove('animate-pulse');
+        sourceText.classList.remove('text-gray-400');
+        const text=micFinalTranscript.trim();
+        micRecognition=null;
+        triggerVibrate();
+        if(text){ sourceText.value=text; clearBtn.classList.remove('hidden'); handleTranslate(); }
+    }
+    function createMicRecognition(){
+        const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        const recognition=new SR();
+        recognition.lang='ko-KR'; recognition.interimResults=true; recognition.continuous=true; recognition.maxAlternatives=1;
+        let fatalError=false;
+        recognition.onresult=(e)=>{
+            let interimPiece='';
+            for(let i=e.resultIndex;i<e.results.length;i++){
+                const chunk=e.results[i][0].transcript;
+                if(e.results[i].isFinal) micFinalTranscript+=chunk;
+                else interimPiece+=chunk;
+            }
+            sourceText.value=(micFinalTranscript+interimPiece).trim();
+            sourceText.classList.toggle('text-gray-400',!!interimPiece);
+            clearBtn.classList.toggle('hidden',sourceText.value.length===0);
+            resetMicSilenceTimer();
+        };
+        recognition.onerror=(e)=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ fatalError=true; showAlertModal('마이크 권한을 허용해주세요.'); } };
+        recognition.onend=()=>{
+            if(micIntentionalStop||fatalError){ finalizeMicRecording(); return; }
+            try{ micRecognition=createMicRecognition(); micRecognition.start(); }catch(err){ finalizeMicRecording(); }
+        };
+        return recognition;
+    }
+    function startSpeechRecognition(){
+        const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        if(!SR){ showAlertModal('이 환경에서는 음성 인식을 지원하지 않습니다.'); return; }
+        if(micListening) return;
+        micListening=true; micIntentionalStop=false; micFinalTranscript='';
+        $('micIconBtn').classList.add('animate-pulse');
+        micRecognition=createMicRecognition();
+        micRecognition.start();
+        resetMicSilenceTimer();
+        triggerVibrate();
+    }
+
+    const convLangList=["한국어","중국어(간체)","중국어(번체)","영어","일본어","베트남어","인도네시아어","크메르어(캄보디아)","벵골어(방글라데시)","미얀마어"];
+    let convMyLang=lsGet(LS.convMy)||"한국어";
+    let convOtherLang=lsGet(LS.convOther)||"중국어(간체)";
+    let convSheetTab='me';
+    let convMsgSeq=0, convDeleteMode=false;
+    function getConvLangs(){ return {my:convMyLang, other:convOtherLang}; }
+    function updateConvLangButtons(){ $('convLangMeBtn').innerText=convMyLang; $('convLangOtherBtn').innerText=convOtherLang; }
+    async function translateOneShot(text,fromLang,toLang){
+        const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const message=`다음 ${fromLang} 문장을 ${toLang}로 자연스럽게 번역해줘.\n문장: ${text}`;
+        const res = await fetchWithBackoff(url, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                contents:[{parts:[{text:message}]}],
+                systemInstruction: { parts: [{ text: getConvSystemPrompt() }] },
+                generationConfig:{temperature:0.2}
+            })
+        });
+        const data=await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
+    }
+    function clearConvEmptyState(){ const e=$('convEmptyState'); if(e) e.remove(); }
+    function showConvEmptyStateIfNeeded(){
+        const box=$('convMessages');
+        if(box.querySelector('[data-msg-id]')||$('convEmptyState')) return;
+        const div=document.createElement('div');
+        div.id='convEmptyState';
+        div.className='flex-1 flex flex-col items-center justify-center gap-8 text-center px-6';
+        div.innerHTML=`<p class="text-blue-600 font-bold text-base">탭하기 🎤 내가 말하기</p><p class="text-amber-500 font-bold text-base">탭하기 🎤 상대방 말하기</p>`;
+        box.appendChild(div);
+    }
+    function addConvBubble(direction){
+        clearConvEmptyState();
+        const msgId=String(++convMsgSeq);
+        const wrap=document.createElement('div');
+        wrap.className=`flex flex-col gap-1 max-w-[85%] ${direction==='me'?'items-start self-start text-left':'items-end self-end text-right'}`;
+        wrap.dataset.msgId=msgId; wrap.dataset.direction=direction;
+        const topRow=document.createElement('div');
+        topRow.className=`flex items-center gap-2 ${direction==='me'?'':'flex-row-reverse'}`;
+        const delBtn=document.createElement('button');
+        delBtn.type='button';
+        delBtn.className='conv-del-x w-5 h-5 rounded-full bg-red-100 text-red-500 hover:bg-red-200 items-center justify-center transition shrink-0';
+        delBtn.title='이 대화 삭제';
+        delBtn.innerHTML=`<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+        delBtn.onclick=()=>removeConvMessage(msgId);
+        const badge=document.createElement('div');
+        badge.className=`text-[11px] font-bold ${direction==='me'?'text-blue-600':'text-amber-500'}`;
+        badge.innerText=direction==='me'?'🎤 나':'🎤 상대방';
+        topRow.appendChild(delBtn); topRow.appendChild(badge);
+        const origEl=document.createElement('div'); origEl.className='text-[1.75rem] text-gray-400';
+        const transRow=document.createElement('div');
+        transRow.className=`flex items-center gap-1.5 ${direction==='me'?'':'flex-row-reverse'}`;
+        const transEl=document.createElement('div'); transEl.className='text-[1.75rem] font-bold text-gray-800 leading-snug';
+        const speakBtn=document.createElement('button');
+        speakBtn.className='p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-white rounded-full transition shrink-0'; speakBtn.title='다시 듣기';
+        speakBtn.innerHTML=`<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        speakBtn.onclick=()=>speakText(transEl.innerText||'',wrap.dataset.toLang||'');
+        transRow.appendChild(transEl); transRow.appendChild(speakBtn);
+        wrap.appendChild(topRow); wrap.appendChild(origEl); wrap.appendChild(transRow);
+        const box=$('convMessages'); box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+        return {wrap,origEl,transEl};
+    }
+
+    function countdownRetry(el,seconds,retryFn){
+        return new Promise(resolve=>{
+            let remain=seconds;
+            el.innerText=`${remain}초 후 자동 재시도...`;
+            const timer=setInterval(()=>{
+                if(!el.isConnected){ clearInterval(timer); resolve(); return; }
+                remain--;
+                if(remain<=0){ clearInterval(timer); retryFn().then(resolve); }
+                else el.innerText=`${remain}초 후 자동 재시도...`;
+            },1000);
+        });
+    }
+
+    async function attemptConvTranslate(text,fromLang,toLang,transEl){
+        try{
+            const translated=await translateOneShot(text,fromLang,toLang);
+            if(!transEl.isConnected) return;
+            transEl.innerText=translated||'—';
+            triggerVibrate();
+            if(translated) speakText(translated,toLang);
+        }catch(e){
+            console.error('conv translate error',e);
+            if(!transEl.isConnected) return;
+            if(e.status===429) await countdownRetry(transEl,30,()=>attemptConvTranslate(text,fromLang,toLang,transEl));
+            else transEl.innerText=friendlyErrorMessage(e);
+        }
+    }
+    let convRecognition=null, convListening=false, convFinalTranscript='';
+    let convSilenceTimer=null, convIntentionalStop=false, convForceDiscard=false, convCurrentBubble=null, convCurrentDirection=null;
+    function clearConvSilenceTimer(){ if(convSilenceTimer){ clearTimeout(convSilenceTimer); convSilenceTimer=null; } }
+    function resetConvSilenceTimer(){
+        clearConvSilenceTimer();
+        convSilenceTimer=setTimeout(()=>{ convIntentionalStop=true; if(convRecognition) convRecognition.stop(); },2000);
+    }
+    function finalizeConvRecording(direction,fromLang,discard){
+        convListening=false; convIntentionalStop=false; convForceDiscard=false;
+        clearConvSilenceTimer();
+        const btn=direction==='me'?$('convMicMe'):$('convMicOther');
+        btn.classList.remove('animate-pulse','scale-95');
+        const bubble=convCurrentBubble;
+        const text=convFinalTranscript.trim();
+        convCurrentBubble=null; convCurrentDirection=null; convRecognition=null;
+        triggerVibrate();
+        if(!bubble) return;
+        if(discard||!text){ bubble.wrap.remove(); showConvEmptyStateIfNeeded(); return; }
+        const norm=s=>String(s).replace(/\s/g,'').toLowerCase();
+        const prevWrap=bubble.wrap.previousElementSibling;
+        if(prevWrap&&prevWrap.dataset.msgId&&prevWrap.dataset.direction===direction&&norm(prevWrap.dataset.origText||'')===norm(text)){
+            bubble.wrap.remove(); showConvEmptyStateIfNeeded(); return;
+        }
+        bubble.wrap.dataset.origText=text;
+        bubble.origEl.innerText=text;
+        bubble.transEl.innerText='번역 중...';
+        const {my,other}=getConvLangs();
+        const toLang=direction==='me'?other:my;
+        bubble.wrap.dataset.toLang=toLang;
+        attemptConvTranslate(text,fromLang,toLang,bubble.transEl);
+        $('convMessages').scrollTop=$('convMessages').scrollHeight;
+    }
+    function createConvRecognition(direction,fromLang){
+        const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        const recognition=new SR();
+        recognition.lang=langCodes[fromLang]||'ko-KR'; recognition.interimResults=true; recognition.continuous=true;
+        let fatalError=false;
+        recognition.onresult=(e)=>{
+            let interimPiece='';
+            for(let i=e.resultIndex;i<e.results.length;i++){
+                const chunk=e.results[i][0].transcript;
+                if(e.results[i].isFinal) convFinalTranscript+=chunk;
+                else interimPiece+=chunk;
+            }
+            if(convCurrentBubble) convCurrentBubble.origEl.innerText=(convFinalTranscript+interimPiece).trim()||'…';
+            resetConvSilenceTimer();
+        };
+        recognition.onerror=(e)=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ fatalError=true; showAlertModal('마이크 권한을 허용해주세요.'); } };
+        recognition.onend=()=>{
+            if(convIntentionalStop||fatalError){ finalizeConvRecording(direction,fromLang,fatalError||convForceDiscard); return; }
+            try{ convRecognition=createConvRecognition(direction,fromLang); convRecognition.start(); }catch(err){ finalizeConvRecording(direction,fromLang,false); }
+        };
+        return recognition;
+    }
+    function startConvRecording(direction){
+        const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        if(!SR){ alert('이 브라우저는 음성 인식을 지원하지 않습니다.'); return; }
+        if(convListening) return;
+        const {my,other}=getConvLangs();
+        const fromLang=direction==='me'?my:other;
+        convFinalTranscript='';
+        convListening=true; convIntentionalStop=false; convCurrentDirection=direction;
+        const btn=direction==='me'?$('convMicMe'):$('convMicOther');
+        btn.classList.add('animate-pulse','scale-95');
+        convCurrentBubble=addConvBubble(direction);
+        convCurrentBubble.origEl.innerText='듣는 중...';
+        convRecognition=createConvRecognition(direction,fromLang);
+        convRecognition.start();
+        resetConvSilenceTimer();
+        triggerVibrate();
+    }
+    function stopConvRecording(){
+        if(!convListening) return;
+        convIntentionalStop=true; convForceDiscard=true;
+        if(convRecognition) convRecognition.stop();
+    }
+    function bindTapMic(btnId,direction){ $(btnId).addEventListener('click',()=>startConvRecording(direction)); }
+    bindTapMic('convMicMe','me');
+    bindTapMic('convMicOther','other');
+
+    function renderConvLangList(){
+        const list=$('convLangSheetList'); list.innerHTML='';
+        const current=convSheetTab==='me'?convMyLang:convOtherLang;
+        convLangList.forEach(lang=>{
+            const btn=document.createElement('button');
+            const selected=lang===current;
+            btn.className=`w-full text-left px-4 py-3 rounded-xl transition font-medium flex items-center justify-between ${selected?'text-blue-600 bg-blue-50/60':'text-gray-700 hover:bg-gray-50'}`;
+            btn.innerText=lang;
+            if(selected) btn.innerHTML+=`<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            btn.onclick=()=>selectConvLang(lang);
+            list.appendChild(btn);
+        });
+    }
+    function selectConvLang(lang){
+        if(convSheetTab==='me'){ convMyLang=lang; lsSet(LS.convMy,lang); }
+        else{ convOtherLang=lang; lsSet(LS.convOther,lang); }
+        updateConvLangButtons(); renderConvLangList();
+    }
+    function setConvTab(tab){
+        convSheetTab=tab;
+        const tabMe=$('convTabMe'), tabOther=$('convTabOther');
+        const active="flex-1 text-sm font-semibold py-2 rounded-lg transition bg-white text-blue-600 shadow-sm";
+        const inactive="flex-1 text-sm font-semibold py-2 rounded-lg transition text-gray-500";
+        tabMe.className=tab==='me'?active:inactive;
+        tabOther.className=tab==='other'?active:inactive;
+        renderConvLangList();
+    }
+    function openConvLangSheet(tab){ setConvTab(tab); $('convLangSheet').classList.remove('hidden'); }
+    function closeConvLangSheet(){ $('convLangSheet').classList.add('hidden'); }
+    function swapConvLangs(){
+        [convMyLang,convOtherLang]=[convOtherLang,convMyLang];
+        lsSet(LS.convMy,convMyLang); lsSet(LS.convOther,convOtherLang);
+        updateConvLangButtons();
+    }
+    $('convLangMeBtn').addEventListener('click',()=>openConvLangSheet('me'));
+    $('convLangOtherBtn').addEventListener('click',()=>openConvLangSheet('other'));
+    $('convSwapBtn').addEventListener('click',swapConvLangs);
+    $('convTabMe').addEventListener('click',()=>setConvTab('me'));
+    $('convTabOther').addEventListener('click',()=>setConvTab('other'));
+    $('convLangSheetBackdrop').addEventListener('click',closeConvLangSheet);
+
+    function openConvDeleteMenu(){ $('convDeleteMenu').classList.remove('hidden'); }
+    function closeConvDeleteMenu(){ $('convDeleteMenu').classList.add('hidden'); }
+    function enterConvDeleteMode(){ convDeleteMode=true; $('convMessages').classList.add('delete-mode'); }
+    function exitConvDeleteMode(){ convDeleteMode=false; $('convMessages').classList.remove('delete-mode'); }
+    function deleteAllConvMessages(){
+        $('convMessages').querySelectorAll('[data-msg-id]').forEach(el=>el.remove());
+        exitConvDeleteMode(); showConvEmptyStateIfNeeded(); closeConvDeleteMenu();
+    }
+    function removeConvMessage(msgId){
+        const el=$('convMessages').querySelector(`[data-msg-id="${msgId}"]`);
+        if(el) el.remove();
+        showConvEmptyStateIfNeeded();
+    }
+    $('convDeleteBtn').addEventListener('click',()=>{ if(convDeleteMode) exitConvDeleteMode(); else openConvDeleteMenu(); });
+    $('convDeleteMenuBackdrop').addEventListener('click',closeConvDeleteMenu);
+    $('convDeleteAllBtn').addEventListener('click',deleteAllConvMessages);
+    $('convDeletePartialBtn').addEventListener('click',()=>{ closeConvDeleteMenu(); enterConvDeleteMode(); });
+    $('convDeleteCancelBtn').addEventListener('click',closeConvDeleteMenu);
+
+    function openConvModal(){ updateConvLangButtons(); showModal($('conversationModal')); }
+    $('closeConvBtn').addEventListener('click',()=>{ stopConvRecording(); closeConvLangSheet(); closeConvDeleteMenu(); exitConvDeleteMode(); hideModal($('conversationModal')); });
+    $('closeImageResultBtn').addEventListener('click',()=>{ if(imgController) imgController.abort(); hideModal($('imageResultModal')); });
+    $('imgSettingsBtn').addEventListener('click',openSettingsModal);
+    $('chatIconBtn').addEventListener('click',openConvModal);
+    $('cameraIconBtn').addEventListener('click',()=>$('cameraInput').click());
+    $('cameraInput').addEventListener('change',e=>{ const file=e.target.files&&e.target.files[0]; e.target.value=''; if(file) handleImageAnalyze(file); });
+    $('micIconBtn').addEventListener('click',startSpeechRecognition);
+
+    refreshChips();
+    updateTargetLangText();
+    renderSettingsMenu();
+  </script>
+</body>
+</html>
