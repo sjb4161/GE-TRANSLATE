@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">미니 패턴번역</string>
+    <string name="shortcut_change_short">대화 링크 변경</string>
+    <string name="shortcut_change_long">ChatGPT 대화 링크 변경</string>
+</resources>

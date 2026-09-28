@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="change_chat_link"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_change_short"
+        android:shortcutLongLabel="@string/shortcut_change_long">
+        <intent
+            android:action="com.mini.patternshortcut.SETTINGS"
+            android:targetPackage="com.mini.patternshortcut"
+            android:targetClass="com.mini.patternshortcut.MainActivity" />
+    </shortcut>
+</shortcuts>
