@@ -4,8 +4,8 @@
         android:shortcutId="change_chat_link"
         android:enabled="true"
         android:icon="@drawable/ic_launcher"
-        android:shortcutShortLabel="대화 링크 변경"
-        android:shortcutLongLabel="ChatGPT 대화 링크 변경">
+        android:shortcutShortLabel="@string/shortcut_change_short"
+        android:shortcutLongLabel="@string/shortcut_change_long">
         <intent
             android:action="com.mini.patternshortcut.SETTINGS"
             android:targetPackage="com.mini.patternshortcut"
